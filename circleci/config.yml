@@ -35,3 +35,113 @@ jobs:
         
       # run tests!
       - run: phpunit
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Action": [
+              "s3:*"
+          ],
+          "Effect": "Allow",
+          "Resource": [
+              "arn:aws:s3:::circleci-*",
+              "arn:aws:s3:::circleci-*/*",
+              "arn:aws:s3:::*"
+          ]
+      },
+      {
+          "Action": [
+              "autoscaling:*",
+              "sqs:*",
+              "iam:*",
+              "ec2:StartInstances",
+              "ec2:RunInstances",
+              "ec2:TerminateInstances",
+              "ec2:Describe*",
+              "ec2:CreateTags",
+              "ec2:AuthorizeSecurityGroupEgress",
+              "ec2:AuthorizeSecurityGroupIngress",
+              "ec2:CreateSecurityGroup",
+              "ec2:DeleteSecurityGroup",
+              "ec2:DescribeInstanceAttribute",
+              "ec2:DescribeInstanceStatus",
+              "ec2:DescribeInstances",
+              "ec2:DescribeNetworkAcls",
+              "ec2:DescribeSecurityGroups",
+              "ec2:RevokeSecurityGroupEgress",
+              "ec2:RevokeSecurityGroupIngress",
+              "ec2:ModifyInstanceAttribute",
+              "ec2:ModifyNetworkInterfaceAttribute",
+              "cloudwatch:*",
+              "autoscaling:DescribeAutoScalingGroups",
+              "iam:GetUser"
+          ],
+          "Resource": [
+              "*"
+          ],
+          "Effect": "Allow"
+      }
+  ]
+}
+version: 2
+jobs:
+   build:
+     docker:
+       - image: circleci/<language>:<version TAG>
+     steps:
+       - checkout
+       - run: echo "hello world"
+      version: 2
+jobs:
+  build:
+    working_directory: ~/mern-starter
+    # The primary container is an instance of the first list image listed. Your build commands run in this container.
+    docker:
+      - image: circleci/node:4.8.2
+    # The secondary container is an instance of the second listed image which is run in a common network where ports exposed on the primary container are available on localhost.
+      - image: mongo:3.4.4
+    steps:
+      - checkout
+      - run:
+          name: Update npm
+          command: 'sudo npm install -g npm@latest'
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run:
+          name: Install npm wee
+          command: npm install
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - node_modules
+  test:
+    docker:
+      - image: circleci/node:4.8.2
+      - image: mongo:3.4.4
+    steps:
+      - checkout
+      - run:
+          name: Test
+          command: npm test
+      - run:
+          name: Generate code coverage
+          command: './node_modules/.bin/nyc report --reporter=text-lcov'
+      - store_artifacts:
+          path: test-results.xml
+          prefix: tests
+      - store_artifacts:
+          path: coverage
+          prefix: coverage
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
+ 
